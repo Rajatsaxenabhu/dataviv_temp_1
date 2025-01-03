@@ -12,7 +12,7 @@ async def upload_file(file: UploadFile = File(...)):
     file_location = f"./work_dir/{file.filename}"
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    file_worker.apply_async(args=[file_location,datetime.now()])
+    file_worker.apply_async(args=[file_location, datetime.now()])
     print("file uploaded successfully")
     return {"filename": file.filename}
 

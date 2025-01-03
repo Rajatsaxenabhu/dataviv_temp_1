@@ -1,0 +1,25 @@
+docker run -d --name postgres-container  -e POSTGRES_DB=rajat  -e POSTGRES_USER=postgres  -e POSTGRES_PASSWORD=postgres -p 5432:5432  postgres:latest
+
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=user  -e RABBITMQ_DEFAULT_PASS=pass  rabbitmq:3-management
+
+http://localhost:15672 # for the rabitmq main addressings
+
+# to start the celery 
+
+celery -A task worker --loglevel=INFO --autoscale=1,4
+
+docker run --name redis-container -p 6379:6379 -d redis
+docker run -d --name redis -p 6379:6379 redis redis-server --requirepass "redis" --user "redis" +@all
+
+
+conda info --envs
+
+conda activate (envt)
+
+docker run --name redis-container -p 6379:6379 -d redis
+The current time is: 2025-01-03 21:15:59.134342
+The current time is: 2025-01-03 21:16:09.141260
+The current time is: 2025-01-03 21:16:19.154398
+The current time is: 2025-01-03 21:16:29.163409
+The current time is: 2025-01-03 21:16:39.171671
+The current time is: 2025-01-03 21:16:49.181231
