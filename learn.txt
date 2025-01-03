@@ -1,0 +1,7 @@
+# to access the postgres container we have to inspect the container ans use their host address
+
+conda info --envs
+
+conda activate (envt)
+
+docker run --name redis-container -p 6379:6379 -d redis
