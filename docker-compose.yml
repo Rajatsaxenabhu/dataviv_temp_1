@@ -17,7 +17,7 @@ services:
       - postgres-db
       - redis
     volumes:
-      - ./app:/app  # Mount the application code inside the container for development purposes.
+      - ./app:/app
 
   celery:
     build: ./app
@@ -27,7 +27,7 @@ services:
       - redis
       - postgres-db
     volumes:
-      - ./app:/app  # Mount the application code for the worker container
+      - ./app:/app
 
   postgres-db:
     image: postgres:17
