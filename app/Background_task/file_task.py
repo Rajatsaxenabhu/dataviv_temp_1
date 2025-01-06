@@ -3,10 +3,12 @@ from datetime import datetime, timedelta,timezone
 from celery.signals import celeryd_after_setup
 
 # Initialize Celery
-apps = Celery('file_task', broker='redis://redis:6379')
-apps.conf.result_backend = 'db+postgresql://postgres:postgres@postgres-db:5432/celery'
+app = Celery('file_task', broker='redis://redis:6379')
+app.conf.result_backend = 'db+postgresql://postgres:postgres@postgres-db:5432/celery'
+app.conf.worker_send_task_events = True
 
-@apps.task(name='runn_main_task')
+
+@app.task(name='runn_main_task')
 def main_task(file_location,total_time,gap_time):
     now = datetime.now(timezone.utc)
     print(f"Main task started at {now}")
@@ -17,7 +19,7 @@ def main_task(file_location,total_time,gap_time):
         print(f"Sub-task {i} scheduled at {eta_time}")
     return "Main task executed and subtasks scheduled."
 
-@apps.task(name='file_worker',bind=True)
+@app.task(name='file_worker',bind=True)
 def file_worker(self,file_location):
     print("Inside the sub_task")
     current_time = datetime.now(timezone.utc)+timedelta(hours=5, minutes=30)

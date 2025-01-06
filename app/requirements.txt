@@ -8,3 +8,4 @@ psycopg2-binary
 pydantic_settings
 python-multipart
 celery[redis]
+flower

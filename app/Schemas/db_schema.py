@@ -60,10 +60,6 @@ class Sub_task(Base):
         default=datetime.now(timezone.utc)
 
     )
-    ending_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        nullable=True  
-    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
