@@ -12,11 +12,13 @@ app.conf.worker_send_task_events = True
 def main_task(file_location,total_time,gap_time):
     now = datetime.now(timezone.utc)
     print(f"Main task started at {now}")
+    task_id=[]
     ans=(total_time*60)/gap_time
     for i in range(1, int(ans)):
         eta_time = now + timedelta(seconds=i*int(gap_time))  
-        file_worker.apply_async((file_location,), eta=eta_time)
-        print(f"Sub-task {i} scheduled at {eta_time}")
+        taskks=file_worker.apply_async((file_location,), eta=eta_time)
+        task_id.append(taskks.id)
+        print(f"Sub-task {i} scheduled at {eta_time} ans the task id is {taskks.id} and the staus is {taskks.status}")
     return "Main task executed and subtasks scheduled."
 
 @app.task(name='file_worker',bind=True)
