@@ -19,13 +19,13 @@ async def root():
 
 @app.post("/uploadfile/")
 async def upload_file(file: UploadFile = File(...),db:Session=Depends(get_db)):
-    existing_task = db.query(Task).filter(Task.file_name == file.filename).first()
+    new_file_name = file.filename
+    existing_task = db.query(Task).filter(Task.file_name == new_file_name).first()
     if existing_task:
         random_suffix = generate_random_suffix()
         base_name, ext = file.filename.rsplit('.', 1)
         new_file_name = f"{base_name}_{random_suffix}.{ext}"
-    else:
-        new_file_name = file.filename
+    
     file_location = f"./work_dir/{new_file_name}"    
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
