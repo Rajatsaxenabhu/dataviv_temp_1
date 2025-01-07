@@ -26,7 +26,6 @@ SQL_DATABASE_CONF: dict = {
 
 
 class Settings(BaseSettings):
-    SECRET_KEY: str
 
     ENV: str
     DEBUG: bool

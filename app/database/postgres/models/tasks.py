@@ -2,12 +2,16 @@ from sqlalchemy import Integer, String, ForeignKey, DateTime, Enum, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, backref
 from datetime import datetime, timezone
 from typing import List
+import uuid
+from sqlalchemy.dialects.postgresql import UUID
 
 from app.database.postgres.models.base import Base
 
 
 class CeleryTaskModel(Base):
     __tablename__ = "celery_tasks"
+    uid: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), index=True, unique=True)
 
     file_name: Mapped[str] = mapped_column(
         String(40), nullable=False, unique=True)
@@ -43,14 +47,16 @@ class CeleryTaskModel(Base):
 class CelerySubTaskModel(Base):
     __tablename__ = "celery_sub_tasks"
 
+    uid: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), index=True, unique=True)
+
     task_id: Mapped[int] = mapped_column(Integer, ForeignKey(
-        "tasks.task_id", ondelete="CASCADE"), nullable=False)
+        "celery_tasks.id", ondelete="CASCADE"), nullable=False)
 
     # pending, running, success, failure
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="PENDING")
 
-    task: Mapped["Task"] = relationship("Task", back_populates="sub_tasks")
     task: Mapped["CeleryTaskModel"] = relationship(
         "CeleryTaskModel", backref=backref("celery_sub_tasks", passive_deletes=True))
 

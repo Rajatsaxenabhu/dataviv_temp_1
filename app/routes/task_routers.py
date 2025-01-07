@@ -1,10 +1,10 @@
 from fastapi import APIRouter, File, UploadFile, Depends
-from app.tasks.file_task import main_task
+from app.database.postgres.models.tasks import CeleryTaskModel
+from app.tasks.file_task import add_numbers, main_task
 import shutil
 from sqlalchemy.orm import Session
 from datetime import datetime
 from app.database.postgres.deps import get_db
-from Configss.db_schema import Task
 
 
 router = APIRouter()
@@ -28,8 +28,8 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
         args=[file_location, schedule_time, gap_time])
     print(task.id)
     print("this is the ", task.id)
-    new_task = Task(file_name=new_file_name, status="READY",
-                    task_internal_id=task.id)
+    new_task = CeleryTaskModel(file_name=new_file_name, status="READY",
+                               task_internal_id=task.id)
     db.add(new_task)
     db.commit()
     db.refresh(new_task)
@@ -39,5 +39,12 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
 
 @router.get("/get_tasks/")
 async def get_tasks(db: Session = Depends(get_db)):
-    tasks = db.query(Task).all()
+    tasks = db.query(CeleryTaskModel).all()
     return {"tasks": tasks}
+
+
+@router.get('/add')
+async def add():
+    task = add_numbers.delay(1, 2)
+    print(type(task.id))
+    return {'task_id': task.id}

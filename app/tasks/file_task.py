@@ -1,24 +1,18 @@
-from celery import Celery
+
 from datetime import datetime, timedelta, timezone
-from celery.signals import task_retry, task_failure, task_postrun, task_internal_error
+# from celery.signals import task_retry, task_failure, task_postrun, task_internal_error
 from redis import Redis
 import json
 import logging
 
-from fastapi import Depends
-
 from app.database.postgres.deps import PostgresDb
 from app.database.postgres.models.tasks import CelerySubTaskModel, CeleryTaskModel
+from app.tasks.config import app
 
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Initialize Celery
-celery_app = Celery('file_task', broker='redis://redis:6379')
-celery_app.conf.result_backend = 'db+postgresql://postgres:postgres@postgres-db:5432/celery'
-celery_app.conf.worker_send_task_events = True
 
 
 # redis client
@@ -29,7 +23,15 @@ redis_client = Redis(
 )
 
 
-@celery_app.task(name='main_task')
+@app.task(name="add")
+def add_numbers(x, y):
+    print(x + y)
+    # session = PostgresDb().session()
+    # print(session)
+    return x+y
+
+
+@app.task(name='main_task')
 def main_task(file_location: str, total_time: int, gap_time: int):
     task_group_id = f"main_task:{main_task.request.id}"
     total_iterations_subtask = int((total_time*60)/gap_time)
@@ -44,7 +46,7 @@ def main_task(file_location: str, total_time: int, gap_time: int):
     return "Main task executed and subtasks scheduled."
 
 
-@celery_app.task(name='sub_task', bind=True)
+@app.task(name='sub_task', bind=True)
 def sub_task(self, file_location):
     session = PostgresDb().session()
 
@@ -60,7 +62,7 @@ def sub_task(self, file_location):
         return False
 
 
-@celery_app.task(name='final_ending_task')
+@app.task(name='final_ending_task')
 def finalize_task(task_group_id):
     metadata = json.loads(redis_client.get(task_group_id))
     metadata["status"] = "SUCCESS"
@@ -69,25 +71,25 @@ def finalize_task(task_group_id):
     print("final task executed and complete all the completed task")
 
 
-@task_postrun.connect
-def handle_task_postrun(task_id, task, state, **kwargs):
-    print(f'let print the {kwargs}')
+# @task_postrun.connect
+# def handle_task_postrun(task_id, task, state, **kwargs):
+#     print(f'let print the {kwargs}')
 
-    print(f'after this {task_id} state is {state}')
-    pass
-
-
-@task_failure.connect()
-def handle_task_failure(sender, **kwargs):
-    pass
+#     print(f'after this {task_id} state is {state}')
+#     pass
 
 
-@task_retry.connect()
-def handle_task_retry(sender, **kwargs):
-    pass
+# @task_failure.connect()
+# def handle_task_failure(sender, **kwargs):
+#     pass
 
 
-@celery_app.task(name='main_task_progress_from_redis')
+# @task_retry.connect()
+# def handle_task_retry(sender, **kwargs):
+#     pass
+
+
+@app.task(name='main_task_progress_from_redis')
 def main_task_progress_from_redis(task_group_id):
     metadata = json.loads(redis_client.get(task_group_id))
     print(metadata)
