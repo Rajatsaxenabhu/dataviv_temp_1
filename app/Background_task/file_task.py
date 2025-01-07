@@ -5,14 +5,9 @@ from redis import Redis
 import json
 import logging
 from sqlalchemy.pool import NullPool
-# from Configss.config_schema import get_db
+from Configss.config_schema import SessionLocal
 # from sqlalchemy import create_engine
-# from sqlalchemy.orm import sessionmaker
-# engine = create_engine(
-#     "postgresql://postgres:postgres@postgres-db:5432/celery", poolclass=NullPool
-# )
-
-# Session = sessionmaker(bind=engine)
+from sqlalchemy.orm import sessionmaker
 
 from fastapi import Depends
 from Configss.db_schema import Sub_task
@@ -46,14 +41,20 @@ def main_task(file_location:str,total_time:int,gap_time:int):
     print(f"Main task {task_group_id} started at {now}")
     for i in range(total_iterations_subtask):
         eta_time = now + timedelta(seconds=(i+1)*int(gap_time)) 
-        taskk=sub_task.apply_async((file_location,), eta=eta_time)
+        taskk=sub_task.apply_async((file_location,task_group_id), eta=eta_time)
 
-        print(f"Subtask {taskk.task_id} scheduled for execution at {eta_time}")
+        print(f"main task is {task_group_id} Subtask {taskk.task_id} scheduled for execution at {eta_time}")
     return "Main task executed and subtasks scheduled."
 
 @app.task(name='sub_task',bind=True)
 def sub_task(self,file_location):
+    db=SessionLocal()
+    new_sub_task=Sub_task(main_task_id=self.request.id,curr_status="PENDING")
+    db.add(new_sub_task)
+    db.commit()
+    db.refresh(new_sub_task)
     current_time = datetime.now(timezone.utc)+timedelta(hours=5, minutes=30)
+
     try:
         with open(file_location, 'a') as f:
             f.write(f"The will print by the sub task and execute at {current_time} \n")
