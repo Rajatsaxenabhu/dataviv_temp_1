@@ -39,7 +39,7 @@ services:
       - /bin/sh
       - -c
       - |
-        celery -A app.tasks.config worker --loglevel=info
+        celery -A app.tasks.config worker --loglevel=info -c 10
     depends_on:
       - fastapi
       - redis
