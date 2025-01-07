@@ -5,14 +5,14 @@ from redis import Redis
 import json
 import logging
 from sqlalchemy.pool import NullPool
-from Configss.config_schema import get_db
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-engine = create_engine(
-    "postgresql://postgres:postgres@postgres-db:5432/celery", poolclass=NullPool
-)
+# from Configss.config_schema import get_db
+# from sqlalchemy import create_engine
+# from sqlalchemy.orm import sessionmaker
+# engine = create_engine(
+#     "postgresql://postgres:postgres@postgres-db:5432/celery", poolclass=NullPool
+# )
 
-Session = sessionmaker(bind=engine)
+# Session = sessionmaker(bind=engine)
 
 from fastapi import Depends
 from Configss.db_schema import Sub_task
