@@ -1,76 +1,120 @@
 services:
-  fastapi-app:
-    build: ./app
+
+  alembic:
+    build: .
+    image: fastpi-celery:v2
+    env_file:
+      - .env
+    volumes:
+      - .:/home/fastapi
+    command:
+      - /bin/sh
+      - -c
+      - |
+        alembic upgrade head
+    depends_on:
+      - postgres
+      - redis
+      - fastapi
+      
+
+  fastapi:
+    build: .
+    image: fastpi-celery:v2
     ports:
       - "8000:8000"
-    environment:
-      - POSTGRES_DB=celery
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_HOST=postgres-db
-      - POSTGRES_PORT=5432
-      - REDIS_PORT=6379
-      - REDIS_HOST=redis
+    env_file:
+      - .env
     depends_on:
-      - postgres-db
+      - postgres
       - redis
     volumes:
-      - ./app:/app
+      - .:/home/fastapi
 
-  celery:
-    build: ./app
-    container_name: celery_worker
-    command: celery -A Background_task.file_task worker -B --loglevel=debug
-    depends_on:
-      - redis
-      - postgres-db
+  worker:
+    build: .
+    container_name: worker
+    image: fastapi-celery:v2-celery
     volumes:
-      - ./app:/app
+      - .:/home/fastapi
+    env_file:
+      - .env
+    restart: on-failure
+    command:  
+      - /bin/sh
+      - -c
+      - |
+        celery -A app.tasks.config worker --loglevel=info -c 10
+    depends_on:
+      - fastapi
+      - redis
+
+  beat:
+    build: .
+    container_name: beat
+    image: fastapi-celery:v2-celery
+    volumes:
+      - .:/home/fastapi
+    env_file:
+      - .env
+    restart: on-failure
+    command:  
+      - /bin/sh
+      - -c
+      - |
+        celery -A app.tasks.config beat --loglevel=info
+    depends_on:
+      - fastapi
+      - redis
+      - worker
 
   flower:
-    build: ./app
-    image: mher/flower
-    container_name: celery_flower
-    ports:
-      - "5555:5555"
-    command: celery -A Background_task.file_task.app flower
-    environment:
-      CELERY_BROKER_URL: redis://redis:6379
-      CELERY_RESULT_BACKEND: db+postgresql://postgres:postgres@postgres-db:5432/celery
-    depends_on:
-      - celery
-      - redis
-      - postgres-db
-      - fastapi-app
+    build: .
+    container_name: flower
+    image: fastapi-celery:v2-celery
     volumes:
-      - ./app:/app
+      - .:/home/fastapi
+    env_file:
+      - .env
+    restart: on-failure
+    command:  
+      - /bin/sh
+      - -c
+      - |
+        celery -A app.tasks.config flower --loglevel=info --broker=redis://redis:6379/0 --port=9090
+    ports:
+      - "9090:9090"
+    depends_on:
+      - fastapi
+      - redis
+      - worker
 
-  postgres-db:
-    image: postgres:17
+  postgres:
+    image: postgres:15-alpine3.19
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: celery
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
       - "5431:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin
-    ports:
-      - "8080:80"
-    environment:
-      PGADMIN_DEFAULT_EMAIL: "admin@admin.com"
-      PGADMIN_DEFAULT_PASSWORD: "root"
-    depends_on:
-      - postgres-db
+  # pgadmin:
+  #   image: dpage/pgadmin4
+  #   container_name: pgadmin
+  #   ports:
+  #     - "5430:80"
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: "admin@admin.com"
+  #     PGADMIN_DEFAULT_PASSWORD: "root"
+  #   depends_on:
+  #     - postgres-db
 
   redis:
     image: redis:alpine
     ports:
-      - "6379:6379"
+      - "6378:6379"
 
 # Volumes for persistent data
 volumes:
