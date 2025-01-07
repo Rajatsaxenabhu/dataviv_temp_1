@@ -7,7 +7,7 @@ import logging
 
 from app.database.postgres.deps import PostgresDb
 from app.database.postgres.models.tasks import CelerySubTaskModel, CeleryTaskModel
-from app.tasks.config import app
+from app.tasks.config import celery as celery_app
 
 
 # Configure logging
@@ -23,52 +23,52 @@ redis_client = Redis(
 )
 
 
-@app.task(name="add")
+@celery_app.task(name="add")
 def add_numbers(x, y):
     print(x + y)
-    # session = PostgresDb().session()
-    # print(session)
+    session = PostgresDb().session()
+    print(session)
     return x+y
 
 
-@app.task(name='main_task')
-def main_task(file_location: str, total_time: int, gap_time: int):
-    task_group_id = f"main_task:{main_task.request.id}"
-    total_iterations_subtask = int((total_time*60)/gap_time)
+# @celery_app.task(name='main_task')
+# def main_task(file_location: str, total_time: int, gap_time: int):
+#     task_group_id = f"main_task:{main_task.request.id}"
+#     total_iterations_subtask = int((total_time*60)/gap_time)
 
-    now = datetime.now(timezone.utc)
-    print(f"Main task {task_group_id} started at {now}")
-    for i in range(total_iterations_subtask):
-        eta_time = now + timedelta(seconds=(i+1)*int(gap_time))
-        taskk = sub_task.celery_apply_async((file_location,), eta=eta_time)
+#     now = datetime.now(timezone.utc)
+#     print(f"Main task {task_group_id} started at {now}")
+#     for i in range(total_iterations_subtask):
+#         eta_time = now + timedelta(seconds=(i+1)*int(gap_time))
+#         taskk = sub_task.celery_apply_async((file_location,), eta=eta_time)
 
-        print(f"Subtask {taskk.task_id} scheduled for execution at {eta_time}")
-    return "Main task executed and subtasks scheduled."
-
-
-@app.task(name='sub_task', bind=True)
-def sub_task(self, file_location):
-    session = PostgresDb().session()
-
-    current_time = datetime.now(timezone.utc)+timedelta(hours=5, minutes=30)
-    try:
-        with open(file_location, 'a') as f:
-            f.write(
-                f"The will print by the sub task and execute at {current_time} \n")
-        self.update_state(state="PROGRESS", meta={'progress': 50})
-        return True
-    except Exception as e:
-        print(f"Error writing to file {file_location}: {str(e)}")
-        return False
+#         print(f"Subtask {taskk.task_id} scheduled for execution at {eta_time}")
+#     return "Main task executed and subtasks scheduled."
 
 
-@app.task(name='final_ending_task')
-def finalize_task(task_group_id):
-    metadata = json.loads(redis_client.get(task_group_id))
-    metadata["status"] = "SUCCESS"
-    redis_client.set(task_group_id, json.dumps(metadata))
-    # login to main data
-    print("final task executed and complete all the completed task")
+# @celery_app.task(name='sub_task', bind=True)
+# def sub_task(self, file_location):
+#     session = PostgresDb().session()
+
+#     current_time = datetime.now(timezone.utc)+timedelta(hours=5, minutes=30)
+#     try:
+#         with open(file_location, 'a') as f:
+#             f.write(
+#                 f"The will print by the sub task and execute at {current_time} \n")
+#         self.update_state(state="PROGRESS", meta={'progress': 50})
+#         return True
+#     except Exception as e:
+#         print(f"Error writing to file {file_location}: {str(e)}")
+#         return False
+
+
+# @celery_app.task(name='final_ending_task')
+# def finalize_task(task_group_id):
+#     metadata = json.loads(redis_client.get(task_group_id))
+#     metadata["status"] = "SUCCESS"
+#     redis_client.set(task_group_id, json.dumps(metadata))
+#     # login to main data
+#     print("final task executed and complete all the completed task")
 
 
 # @task_postrun.connect
@@ -89,7 +89,7 @@ def finalize_task(task_group_id):
 #     pass
 
 
-@app.task(name='main_task_progress_from_redis')
-def main_task_progress_from_redis(task_group_id):
-    metadata = json.loads(redis_client.get(task_group_id))
-    print(metadata)
+# @celery_app.task(name='main_task_progress_from_redis')
+# def main_task_progress_from_redis(task_group_id):
+#     metadata = json.loads(redis_client.get(task_group_id))
+#     print(metadata)

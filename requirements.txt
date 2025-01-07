@@ -66,6 +66,8 @@ python-jose[cryptography]
 SQLAlchemy-Utils
 aiohttp
 async-timeout
-
 python-json-logger
+flower
+celery
+redis
 flower
