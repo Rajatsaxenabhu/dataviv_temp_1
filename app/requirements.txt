@@ -10,3 +10,5 @@ python-multipart
 celery[redis]
 flower
 sqlalchemy-utils
+redis
+redis[hiredis]
