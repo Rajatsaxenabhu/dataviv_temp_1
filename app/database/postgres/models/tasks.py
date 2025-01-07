@@ -12,8 +12,6 @@ class CeleryTaskModel(Base):
     file_name: Mapped[str] = mapped_column(
         String(40), nullable=False, unique=True)
 
-    task_internal_id: Mapped[str | None] = mapped_column(String(40))
-
     progress: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     total_sub_tasks: Mapped[int] = mapped_column(

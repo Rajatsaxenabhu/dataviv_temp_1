@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     ENV: str
     DEBUG: bool
 
+    CLIENT_ORIGIN: str
+    ALLOWED_ORIGIN: List[str] = config('CLIENT_ORIGIN', cast=str).split(",")
+
     POSTGRES_DB: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str

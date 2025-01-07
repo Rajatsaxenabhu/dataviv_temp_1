@@ -5,13 +5,13 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 
-class PostgresDB():
+class PostgresDb():
     _instances = {}
 
     def __new__(cls, *args, **kwargs):
         if cls not in cls._instances:
             cls._instances[cls] = super(
-                PostgresDB, cls).__new__(cls, *args, **kwargs)
+                PostgresDb, cls).__new__(cls, *args, **kwargs)
             cls._instances[cls]._session = SessionLocal()
         return cls._instances[cls]
 
@@ -27,4 +27,4 @@ def get_db():
         db.close()
 
 
-pg_session_dependency = Annotated[Session, Depends(PostgresDB().session)]
+pg_session_dependency = Annotated[Session, Depends(PostgresDb().session)]

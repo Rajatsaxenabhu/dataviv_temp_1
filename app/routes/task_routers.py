@@ -22,13 +22,14 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    schedule_time = 1  # in minutes
-    gap_time = 10  # in seconds
-    tasky = main_task.routerly_async(
+    schedule_time = 1
+    gap_time = 10
+    task = main_task.apply_async(
         args=[file_location, schedule_time, gap_time])
-    print("this is the ", tasky.task_id)
+    print(task.id)
+    print("this is the ", task.id)
     new_task = Task(file_name=new_file_name, status="READY",
-                    task_internal_id=tasky.task_id)
+                    task_internal_id=task.id)
     db.add(new_task)
     db.commit()
     db.refresh(new_task)

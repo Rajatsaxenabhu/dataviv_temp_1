@@ -4,18 +4,11 @@ from celery.signals import task_retry, task_failure, task_postrun, task_internal
 from redis import Redis
 import json
 import logging
-from sqlalchemy.pool import NullPool
-# from Configss.config_schema import get_db
-# from sqlalchemy import create_engine
-# from sqlalchemy.orm import sessionmaker
-# engine = create_engine(
-#     "postgresql://postgres:postgres@postgres-db:5432/celery", poolclass=NullPool
-# )
-
-# Session = sessionmaker(bind=engine)
 
 from fastapi import Depends
-from Configss.db_schema import Sub_task
+
+from app.database.postgres.deps import PostgresDb
+from app.database.postgres.models.tasks import CelerySubTaskModel, CeleryTaskModel
 
 
 # Configure logging
@@ -53,6 +46,8 @@ def main_task(file_location: str, total_time: int, gap_time: int):
 
 @celery_app.task(name='sub_task', bind=True)
 def sub_task(self, file_location):
+    session = PostgresDb().session()
+
     current_time = datetime.now(timezone.utc)+timedelta(hours=5, minutes=30)
     try:
         with open(file_location, 'a') as f:
