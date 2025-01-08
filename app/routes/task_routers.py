@@ -35,7 +35,7 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
     task = main_task.apply_async(
         args=[file_location, schedule_time, gap_time])
     print("this is the ", task.id)
-    new_task = CeleryTaskModel(file_name=original_file_name,status="READY",task_internal_id=task.id,file_unique_name=unique_filename)
+    new_task = CeleryTaskModel(file_name=original_file_name,status="READY",task_group_id=task.id,file_unique_name=unique_filename)
     db.add(new_task)
     db.commit()
     db.refresh(new_task)
@@ -45,12 +45,6 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
                                  "file_name": original_file_name,
                                  "file_unique_name": new_file_name}
                                 )
-
-
-@router.get("/get_tasks/")
-async def get_tasks(db: Session = Depends(get_db)):
-    tasks = db.query(CeleryTaskModel).all()
-    return {"tasks": tasks}
 
 
 @router.get('/add')

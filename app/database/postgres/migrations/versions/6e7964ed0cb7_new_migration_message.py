@@ -1,8 +1,8 @@
-"""initial
+"""New migration message
 
-Revision ID: 2653352ad1a3
+Revision ID: 6e7964ed0cb7
 Revises: 
-Create Date: 2025-01-07 11:22:33.570210
+Create Date: 2025-01-08 21:39:11.135279
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '2653352ad1a3'
+revision: str = '6e7964ed0cb7'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -23,27 +23,32 @@ def upgrade() -> None:
     op.create_table('celery_tasks',
     sa.Column('uid', sa.UUID(), nullable=False),
     sa.Column('file_name', sa.String(length=40), nullable=False),
+    sa.Column('file_unique_name', sa.String(length=40), nullable=False),
     sa.Column('progress', sa.Integer(), nullable=False),
     sa.Column('total_sub_tasks', sa.Integer(), nullable=False),
     sa.Column('remaining_sub_tasks', sa.Integer(), nullable=False),
     sa.Column('status', sa.String(length=20), nullable=False),
+    sa.Column('task_group_id', sa.String(length=40), nullable=False),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('file_name')
+    sa.UniqueConstraint('file_unique_name'),
+    sa.UniqueConstraint('task_group_id')
     )
     op.create_index(op.f('ix_celery_tasks_id'), 'celery_tasks', ['id'], unique=False)
     op.create_index(op.f('ix_celery_tasks_uid'), 'celery_tasks', ['uid'], unique=True)
     op.create_table('celery_sub_tasks',
     sa.Column('uid', sa.UUID(), nullable=False),
-    sa.Column('task_id', sa.Integer(), nullable=False),
+    sa.Column('sub_task_group_id', sa.Integer(), nullable=False),
+    sa.Column('sub_task_id', sa.String(length=40), nullable=False),
     sa.Column('status', sa.String(length=20), nullable=False),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['task_id'], ['celery_tasks.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
+    sa.ForeignKeyConstraint(['sub_task_group_id'], ['celery_tasks.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('sub_task_id')
     )
     op.create_index(op.f('ix_celery_sub_tasks_id'), 'celery_sub_tasks', ['id'], unique=False)
     op.create_index(op.f('ix_celery_sub_tasks_uid'), 'celery_sub_tasks', ['uid'], unique=True)

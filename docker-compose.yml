@@ -2,7 +2,7 @@ services:
 
   alembic:
     build: .
-    image: fastpi-celery:v2
+    image: fastpi-alemic:v2
     env_file:
       - .env
     volumes:
@@ -20,7 +20,7 @@ services:
 
   fastapi:
     build: .
-    image: fastpi-celery:v2
+    image: fastpi-fastapi:v2
     ports:
       - "8000:8000"
     env_file:
@@ -52,7 +52,7 @@ services:
   beat:
     build: .
     container_name: beat
-    image: fastapi-celery:v2-celery
+    image: fastapi-beat:v2-celery
     volumes:
       - .:/home/fastapi
     env_file:
@@ -71,7 +71,7 @@ services:
   flower:
     build: .
     container_name: flower
-    image: fastapi-celery:v2-celery
+    image: fastapi-flower:v2-celery
     volumes:
       - .:/home/fastapi
     env_file:
@@ -81,7 +81,7 @@ services:
       - /bin/sh
       - -c
       - |
-        celery -A app.tasks.config flower --loglevel=info --broker=redis://redis:6379/0 --port=9090
+        celery -A app.tasks.config flower --loglevel=info --port=9090
     ports:
       - "9090:9090"
     depends_on:

@@ -34,15 +34,17 @@ def add_numbers(x, y):
 @celery_app.task(name='main_task')
 def main_task(file_location: str, total_time: int, gap_time: int):
     print(f"Total time is {total_time} and gap time is {gap_time}")
+
+    #session is open
     session = PostgresDb().session()
-    print("inside the main task")
+    
     #main task id
     task_group_id = f"main_task:{main_task.request.id}"
     total_iterations_subtask = int((total_time*60)/gap_time)
 
     now = datetime.now(timezone.utc)
     # now update the main task
-    main_task_update = session.query(CeleryTaskModel).filter_by(task_internal_id=task_group_id).first()
+    main_task_update = session.query(CeleryTaskModel).filter_by(task_group_id=task_group_id).first()
     main_task_update.set_status("RUNNING")
     main_task_update.total_sub_tasks = total_iterations_subtask
     main_task_update.remaining_sub_tasks = total_iterations_subtask
@@ -51,7 +53,7 @@ def main_task(file_location: str, total_time: int, gap_time: int):
     for i in range(total_iterations_subtask):
         eta_time = now + timedelta(seconds=(i+1)*int(gap_time))
         taskk = sub_task.apply_async((file_location,), eta=eta_time)
-        sub_task_update=CelerySubTaskModel(task_group_id=task_group_id,curr_status="PENDING",sub_task_internal_id=taskk.id)
+        sub_task_update=CelerySubTaskModel(sub_task_group_id=task_group_id,curr_status="PENDING",sub_task_id=taskk.id)
         session.add(sub_task_update)
         session.commit()
         print(f"Subtask {taskk.task_id} scheduled for execution at {eta_time}")
@@ -82,24 +84,24 @@ def finalize_task(task_group_id):
     print("final task executed and complete all the completed task")
 
 
-@task_postrun.connect
-def handle_task_postrun(task_id, task, state, **kwargs):
-    session = PostgresDb().session()
-    if state == "SUCCESS":
-        sub_task_update = session.query(CelerySubTaskModel).filter_by(sub_task_internal_id=task_id).first()
-        sub_task_update.set_status("SUCCESS")
-        main_task_update = session.query(CeleryTaskModel).filter_by(task_internal_id=sub_task_update.task_group_id).first()
-        main_task_update.remaining_sub_tasks -= 1
-        main_task_update.progress = ((main_task_update.total_sub_tasks - main_task_update.remaining_sub_tasks)/main_task_update.total_sub_tasks)*100
-        session.commit()
-    if state == "FAILURE":
-        sub_task_update = session.query(CelerySubTaskModel).filter_by(sub_task_internal_id=task_id).first()
-        sub_task_update.set_status("FAILURE")
-        main_task_update = session.query(CeleryTaskModel).filter_by(task_internal_id=sub_task_update.task_group_id).first()
-        main_task_update.set_status("FAILURE")
-        session.commit()
-    print(f'let print the {kwargs}')
-    print(f'after this {task_id} state is {state}')
+# @task_postrun.connect
+# def handle_task_postrun(task_id, task, state, **kwargs):
+#     session = PostgresDb().session()
+#     if state == "SUCCESS":
+#         sub_task_update = session.query(CelerySubTaskModel).filter_by(sub_task_internal_id=task_id).first()
+#         sub_task_update.set_status("SUCCESS")
+#         main_task_update = session.query(CeleryTaskModel).filter_by(task_group_id=sub_task_update.task_group_id).first()
+#         main_task_update.remaining_sub_tasks -= 1
+#         main_task_update.progress = ((main_task_update.total_sub_tasks - main_task_update.remaining_sub_tasks)/main_task_update.total_sub_tasks)*100
+#         session.commit()
+#     if state == "FAILURE":
+#         sub_task_update = session.query(CelerySubTaskModel).filter_by(sub_task_internal_id=task_id).first()
+#         sub_task_update.set_status("FAILURE")
+#         main_task_update = session.query(CeleryTaskModel).filter_by(task_group_id=sub_task_update.task_group_id).first()
+#         main_task_update.set_status("FAILURE")
+#         session.commit()
+#     print(f'let print the {kwargs}')
+#     print(f'after this {task_id} state is {state}')
 
 
 @task_failure.connect()
