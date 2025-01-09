@@ -32,18 +32,8 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
     schedule_time = 1
     gap_time = 10
     task = main_task.apply_async(
-        args=[file_location, schedule_time, gap_time])
+        args=[file_name,file_unique_name,file_location, schedule_time, gap_time])
     print("this is the ", task.id)
-    new_task = CeleryTaskModel(
-        file_name=file_name,
-        file_unique_name=file_unique_name,
-        file_path=file_location,
-        status="READY",
-        task_group_id=task.id
-    )
-    db.add(new_task)
-    db.commit()
-    db.refresh(new_task)
     print("file uploaded successfully")
     return JSONResponse(content={"message": "File uploaded successfully",
                                  "file_name": file_name,

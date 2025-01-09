@@ -97,19 +97,10 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
       - "5431:5432"
+    expose:
+      - "5431"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
-  # pgadmin:
-  #   image: dpage/pgadmin4
-  #   container_name: pgadmin
-  #   ports:
-  #     - "5430:80"
-  #   environment:
-  #     PGADMIN_DEFAULT_EMAIL: "admin@admin.com"
-  #     PGADMIN_DEFAULT_PASSWORD: "root"
-  #   depends_on:
-  #     - postgres-db
 
   redis:
     image: redis:alpine
