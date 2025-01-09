@@ -18,6 +18,15 @@ class CeleryTaskModel(Base):
     
     file_unique_name: Mapped[str] = mapped_column(
         String(40), nullable=False, unique=True)
+    file_path: Mapped[str] = mapped_column(
+        String(255), nullable=False
+    )
+    
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=func.now())    
+    
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=func.now(), onupdate=func.now())
 
     progress: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
@@ -32,23 +41,36 @@ class CeleryTaskModel(Base):
 
     task_group_id: Mapped[str] = mapped_column(
         String(40), nullable=False, unique=True)
+    
+    error_message: Mapped[str] = mapped_column(
+        String(1000), nullable=True)
 
     #relationship
     sub_tasks: Mapped[List["CelerySubTaskModel"]] = relationship(
-        "CelerySubTaskModel", backref=backref("celery_tasks", passive_deletes=True),cascade="all, delete-orphan")
+        "CelerySubTaskModel", backref=backref("parent_task", passive_deletes=True),cascade="all, delete-orphan")
 
-    def __init__(self, file_name: str, status: str, task_group_id: str,file_unique_name: str) -> None:
+    def __init__(self, file_name: str, status: str, task_group_id: str,file_unique_name: str, file_path: str) -> None:
         self.file_name = file_name
         self.status = status
         self.task_group_id = task_group_id
         self.file_unique_name = file_unique_name
+        self.file_path = file_path
         self.uid = uuid.uuid4()
 
 
     #pending, running, success, failure
     def set_status(self, new_status: str) -> None:
         self.status = new_status
+        self.updated_at = datetime.now(timezone.utc)
 
+    def update_progress(self) -> None:
+        self.remaining_sub_tasks=self.remaining_sub_tasks - 1 if self.remaining_sub_tasks > 0 else 0 
+        self.progress=int((self.total_sub_tasks - self.remaining_sub_tasks)/self.total_sub_tasks*100)
+        if self.progress == 100:
+            self.status = "SUCCESS"
+         
+        
+    
     def __repr__(self) -> str:
         return (f"Task(task_id={self.task_id}, "
                 f"file_name={self.file_name}, "
@@ -65,9 +87,11 @@ class CelerySubTaskModel(Base):
         "celery_tasks.id", ondelete="CASCADE"), nullable=False)
     
     sub_task_id: Mapped[str] = mapped_column(
-        String(40), nullable=False, unique=True)
-    
+        String(40), nullable=False, unique=True)    
 
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=func.now())
+    
     # pending, running, success, failure
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="PENDING")

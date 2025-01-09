@@ -21,12 +21,11 @@ async def root():
 
 @router.post("/uploadfile/")
 async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    original_file_name = file.filename
+    file_name = file.filename
     time_name=datetime.now().strftime("%Y%m%d%H%M%S")
-    filename, ext = os.path.splitext(original_file_name)
-    unique_filename = f"{filename}_{time_name}{ext}"
-    new_file_name = unique_filename
-    file_location = f"app/work_dir/{new_file_name}"
+    temp_file_name, ext = os.path.splitext(file_name)
+    file_unique_name = f"{temp_file_name}_{time_name}{ext}"
+    file_location = f"app/work_dir/{file_unique_name}"
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
@@ -35,15 +34,20 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
     task = main_task.apply_async(
         args=[file_location, schedule_time, gap_time])
     print("this is the ", task.id)
-    new_task = CeleryTaskModel(file_name=original_file_name,status="READY",task_group_id=task.id,file_unique_name=unique_filename)
+    new_task = CeleryTaskModel(
+        file_name=file_name,
+        file_unique_name=file_unique_name,
+        file_path=file_location,
+        status="READY",
+        task_group_id=task.id
+    )
     db.add(new_task)
     db.commit()
     db.refresh(new_task)
     print("file uploaded successfully")
     return JSONResponse(content={"message": "File uploaded successfully",
-                                 "task_id": task.id,
-                                 "file_name": original_file_name,
-                                 "file_unique_name": new_file_name}
+                                 "file_name": file_name,
+                                 "file_unique_name": file_unique_name,}
                                 )
 
 

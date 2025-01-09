@@ -39,25 +39,26 @@ def main_task(file_location: str, total_time: int, gap_time: int):
     session = PostgresDb().session()
     
     #main task id
-    task_group_id = f"main_task:{main_task.request.id}"
-    total_iterations_subtask = int((total_time*60)/gap_time)
+    # task_group_id = f"main_task:{main_task.request.id}"
+    # total_iterations_subtask = int((total_time*60)/gap_time)
 
-    now = datetime.now(timezone.utc)
-    # now update the main task
-    main_task_update = session.query(CeleryTaskModel).filter_by(task_group_id=task_group_id).first()
-    main_task_update.set_status("RUNNING")
-    main_task_update.total_sub_tasks = total_iterations_subtask
-    main_task_update.remaining_sub_tasks = total_iterations_subtask
-    session.commit()
-    print(f"Main task {task_group_id} started at {now}")
-    for i in range(total_iterations_subtask):
-        eta_time = now + timedelta(seconds=(i+1)*int(gap_time))
-        taskk = sub_task.apply_async((file_location,), eta=eta_time)
-        sub_task_update=CelerySubTaskModel(sub_task_group_id=task_group_id,curr_status="PENDING",sub_task_id=taskk.id)
-        session.add(sub_task_update)
-        session.commit()
-        print(f"Subtask {taskk.task_id} scheduled for execution at {eta_time}")
-    return "Main task executed and subtasks scheduled."
+    # now = datetime.now(timezone.utc)
+    # # now update the main task
+    # main_task_update = session.query(CeleryTaskModel).filter_by(task_group_id=task_group_id).first()
+    # main_task_update.set_status("RUNNING")
+    # main_task_update.total_sub_tasks = total_iterations_subtask
+    # main_task_update.remaining_sub_tasks = total_iterations_subtask
+    # session.commit()
+    # print(f"Main task {task_group_id} started at {now}")
+    # for i in range(total_iterations_subtask):
+    #     eta_time = now + timedelta(seconds=(i+1)*int(gap_time))
+    #     taskk = sub_task.apply_async((file_location,), eta=eta_time)
+    #     sub_task_update=CelerySubTaskModel(sub_task_group_id=task_group_id,curr_status="PENDING",sub_task_id=taskk.id)
+    #     session.add(sub_task_update)
+    #     session.commit()
+    #     print(f"Subtask {taskk.task_id} scheduled for execution at {eta_time}")
+    # return "Main task executed and subtasks scheduled."
+    return "main task tmpe1"
 
 
 @celery_app.task(name='sub_task', bind=True)
