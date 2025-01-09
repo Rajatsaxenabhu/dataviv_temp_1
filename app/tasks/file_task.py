@@ -2,7 +2,6 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from celery.signals import task_retry, task_failure, task_postrun, task_internal_error
 from redis import Redis
-
 import logging
 from app.database.postgres.models.tasks import CelerySubTaskModel
 
@@ -25,94 +24,119 @@ redis_client = Redis(
 
 
 @celery_app.task(name='main_task')
-def main_task(file_name: str, file_unique_name: str, file_location: str, total_time: int, gap_time: int):
+def main_task(file_name: str, file_unique_name: str, file_location: str, total_time: int, gap_time: int)->str:
     print(f"Total time is {total_time} and gap time is {gap_time}")
 
     #session is open
-    session = PostgresDb().session()
-    
-    #main task id
-    main_task_id = f"main_task:{main_task.request.id}"
-    main_task_id=main_task_id[10:]
-    total_sub_tasks= int((total_time*60)/gap_time)
-
-    now = datetime.now(timezone.utc)
-    new_task = CeleryTaskModel(
-        file_name=file_name,
-        file_unique_name=file_unique_name,
-        file_path=file_location,
-        main_task_id=main_task_id,
-        total_sub_tasks=total_sub_tasks,
- )
-    session.add(new_task)
-    session.commit()
-    session.refresh(new_task)
-    print(f"Main task {main_task_id} started at {now}")
-    for i in range(total_sub_tasks):
-        eta_time = now + timedelta(seconds=(i+1)*int(gap_time))
-        taskk = sub_task.apply_async((file_location,), eta=eta_time)
-        print("this is  the main sub id is ",taskk.id)
-        sub_task_update=CelerySubTaskModel(
-            sub_task_id=taskk.id,
-            sub_task_main_id = main_task_id,
-        )
-        session.add(sub_task_update)
-        session.commit()
-        print(f"Subtask {taskk.task_id} scheduled for execution at {eta_time}")
-    return "Main task executed and subtasks scheduled."
+    try:
+        with PostgresDb().session() as session:
+            #main task id
+            main_task_id = f"main_task:{main_task.request.id}"
+            main_task_id=main_task_id[10:]
+            total_sub_tasks= int((total_time*60)/gap_time)
+            now = datetime.now(timezone.utc)
+            new_task = CeleryTaskModel(
+                file_name=file_name,
+                file_unique_name=file_unique_name,
+                file_path=file_location,
+                main_task_id=main_task_id,
+                total_sub_tasks=total_sub_tasks,
+                )
+            session.add(new_task)
+            session.commit()
+            print(f"Main task {main_task_id} started at {now}")
+            for i in range(total_sub_tasks):
+                eta_time = now + timedelta(seconds=(i+1)*int(gap_time))
+                subtask = sub_task.apply_async((file_location,), eta=eta_time)
+                sub_task_update=CelerySubTaskModel(
+                    sub_task_id=subtask.id,
+                    sub_task_main_id = main_task_id,
+                )
+                session.add(sub_task_update)
+                logger.info(f"Scheduled subtask {subtask.id} for {eta_time}")
+            session.commit()
+            print(f"Subtask {subtask.task_id} scheduled for execution at {eta_time}")
+            return "Main task executed and subtasks scheduled."
+        
+    except Exception as e:
+        logger.error(f"Error in main_task: {str(e)}")
+        session.rollback()
+        raise
 
 
 @celery_app.task(name='sub_task', bind=True)
-def sub_task(self, file_location):
+def sub_task(self, file_location)->bool:
     #working on sub task
-    self.state="PROGRESS"
+    self.update_state(state="PROGRESS")
     current_time = datetime.now(timezone.utc)+timedelta(hours=5, minutes=30)
+
+    # logic karo idhar apna
     try:
         with open(file_location, 'a') as f:
             f.write(
                 f"The will print by the sub task and execute at {current_time} \n")
-        self.state = "SUCCESS"
+        # self.state = "SUCCESS"
         return True
     except Exception as e:
         print(f"Error writing to file {file_location}: {str(e)}")
-        self.state = "FAILURE"
         return False
 
 @task_postrun.connect
-def handle_task_postrun(task_id, task, state, **kwargs):
+def handle_task_postrun(task_id: str, task: any, state: str, **kwargs):
+    """
+    Updates task statuses and progress after task completion.
+    """
     try:
         with PostgresDb().session() as session:
-            post_task = session.query(CelerySubTaskModel).filter(CelerySubTaskModel.sub_task_id == task_id).first()
-            if not post_task:
-                return None
-            main_task_action=session.query(CeleryTaskModel).filter(CeleryTaskModel.main_task_id == post_task.sub_task_main_id).first()
-            if state == "SUCCESS":
-                post_task.status = "SUCCESS"
-                
-                if main_task_action.remaining_sub_tasks==1:
-                    main_task_action.status="SUCCESS"
-                else:
-                    main_task_action.remaining_sub_tasks=main_task_action.remaining_sub_tasks-1
-            elif state == "FAILURE":
-                post_task.status = "FAILURE"
-                main_task_action.status="FAILURE"
-
-            elif state == "PROGRESS":
-                post_task.status = "PROGRESS"
-            main_task_action.progress=main_task_action.total_sub_tasks-main_task_action.remaining_sub_tasks/main_task_action.total_sub_tasks*100
+            # Get subtask record
+            subtask = session.execute(
+                select(CelerySubTaskModel)
+                .where(CelerySubTaskModel.sub_task_id == task_id)
+            ).scalar_one_or_none()
             
+            if not subtask:
+                return None
+
+            # Get main task record
+            main_task = session.execute(
+                select(CeleryTaskModel)
+                .where(CeleryTaskModel.main_task_id == subtask.sub_task_main_id)
+            ).scalar_one_or_none()
+            
+            if not main_task:
+                return None
+
+            # Update statuses and progress
+            subtask.status = state
+            remaining_tasks = main_task.remaining_sub_tasks
+
+            if state == "SUCCESS":
+                main_task.progress = ((main_task.total_sub_tasks-(main_task.remaining_sub_tasks-1))/main_task.total_sub_tasks)*100
+                if remaining_tasks <= 1:
+                    main_task.status = "SUCCESS"
+                    main_task.progress = 100.0
+                main_task.remaining_sub_tasks = max(0, remaining_tasks - 1)
+                
+            elif state == "FAILURE":
+                main_task.status = "FAILURE"
+                
+            elif state == "PROGRESS":
+                completed_tasks = main_task.total_sub_tasks - remaining_tasks
+                main_task.progress = (completed_tasks / main_task.total_sub_tasks) * 100
+
             session.commit()
-            return post_task
-               
+            return subtask
+            
     except Exception as e:
+        logger.error(f"Error in task_postrun: {str(e)}")
         session.rollback()
         raise
 
-@task_failure.connect()
-def handle_task_failure(sender, **kwargs):
-    pass
+# @task_failure.connect()
+# def handle_task_failure(sender, **kwargs):
+#     pass
 
 
-@task_retry.connect()
-def handle_task_retry(sender, **kwargs):
-    pass
+# @task_retry.connect()
+# def handle_task_retry(sender, **kwargs):
+#     pass
