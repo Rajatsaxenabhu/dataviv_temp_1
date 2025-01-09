@@ -1,3 +1,4 @@
+from __future__ import annotations
 from sqlalchemy import Integer, String, ForeignKey, DateTime, Enum, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, backref
 from datetime import datetime, timezone, timedelta
@@ -5,10 +6,12 @@ from typing import List
 import uuid
 from sqlalchemy.dialects.postgresql import UUID
 
+from sqlalchemy.ext.hybrid import hybrid_method
+from sqlalchemy.ext.hybrid import hybrid_property
 from app.database.postgres.models.base import Base
 
 def get_ist_time():
-    """Helper function to get consistent IST time"""
+    # this is the india time
     return datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
 
 class CeleryTaskModel(Base):
@@ -32,7 +35,7 @@ class CeleryTaskModel(Base):
         String(255), nullable=False, unique=False)
     
     progress: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0)
+        Integer, nullable=False, default=1)
 
     total_sub_tasks: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0)
@@ -77,6 +80,7 @@ class CeleryTaskModel(Base):
         self.total_sub_tasks = total_sub_tasks
         self.status = "RUNNING"
 
+    
     def set_status(self, new_status: str) -> None:
         self.status = new_status
 
@@ -122,11 +126,7 @@ class CelerySubTaskModel(Base):
     def __init__(self, sub_task_id: str, sub_task_main_id: str) -> None:
         self.sub_task_id = sub_task_id
         self.sub_task_main_id = sub_task_main_id
-        self.status = "PENDING"
-
-    def set_status(self, new_status: str) -> None:
-        self.status = new_status  # Fixed from curr_status
-        self.completed_at = get_ist_time()
+        self.status = "PENDING"   
 
     def __repr__(self) -> str:
         return (f"Sub_task(sub_task_id={self.sub_task_id}, "

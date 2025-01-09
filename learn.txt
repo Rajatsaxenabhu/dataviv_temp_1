@@ -6,7 +6,7 @@ conda activate (envt)
 
 docker run --name redis-container -p 6379:6379 -d redis
 
-alembic revision --autogenerate -m "Yoursaa"
+alembic revision --autogenerate -m "Yoursqaa"
 
 alembic upgrade head
 

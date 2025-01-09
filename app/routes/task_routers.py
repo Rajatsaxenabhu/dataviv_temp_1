@@ -1,6 +1,4 @@
 from fastapi import APIRouter, File, UploadFile, Depends
-from app.database.postgres.models.tasks import CeleryTaskModel
-from app.tasks.file_task import add_numbers
 import shutil
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -39,10 +37,3 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
                                  "file_name": file_name,
                                  "file_unique_name": file_unique_name,}
                                 )
-
-
-@router.get('/add')
-async def add_route():
-    task = add_numbers.delay(1, 2)
-    print(type(task.id))
-    return {'task_id': task.id}
