@@ -1,5 +1,4 @@
 services:
-
   alembic:
     build: .
     image: fastpi-alemic:v2
@@ -16,7 +15,6 @@ services:
       - postgres
       - redis
       - fastapi
-      
 
   fastapi:
     build: .
@@ -39,12 +37,11 @@ services:
       - .:/home/fastapi
     env_file:
       - .env
-    restart: on-failure
-    command:  
+    command:
       - /bin/sh
       - -c
       - |
-        celery -A app.tasks.config worker --loglevel=info -c 10
+        celery -A app.tasks.config worker --loglevel=debug
     depends_on:
       - fastapi
       - redis
@@ -58,7 +55,7 @@ services:
     env_file:
       - .env
     restart: on-failure
-    command:  
+    command:
       - /bin/sh
       - -c
       - |
@@ -77,7 +74,7 @@ services:
     env_file:
       - .env
     restart: on-failure
-    command:  
+    command:
       - /bin/sh
       - -c
       - |
@@ -107,7 +104,6 @@ services:
     ports:
       - "6378:6379"
 
-# Volumes for persistent data
 volumes:
   postgres_data:
   redis_data:

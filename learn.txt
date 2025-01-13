@@ -10,4 +10,7 @@ alembic revision --autogenerate -m "Yoursqaa"
 
 alembic upgrade head
 
+rtp://@224.0.0.1:5004
 
+
+apt update && apt install -y ffmpeg

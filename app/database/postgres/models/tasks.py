@@ -11,8 +11,8 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from app.database.postgres.models.base import Base
 
 def get_ist_time():
-    # this is the india time
-    return datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
+    # this is the UTC time
+    return datetime.now(timezone.utc)
 
 class CeleryTaskModel(Base):
     __tablename__ = "celery_tasks"
@@ -25,8 +25,8 @@ class CeleryTaskModel(Base):
         default=uuid.uuid4
     )
 
-    file_name: Mapped[str] = mapped_column(
-        String(255), nullable=False, unique=False)
+    file_type: Mapped[str] = mapped_column(
+        String(25), nullable=False, unique=False)
 
     file_unique_name: Mapped[str] = mapped_column(
         String(255), nullable=False, unique=True)
@@ -61,6 +61,7 @@ class CeleryTaskModel(Base):
         default=get_ist_time,
         onupdate=get_ist_time
     )
+    
 
     # relationship
     sub_tasks: Mapped[List["CelerySubTaskModel"]] = relationship(
@@ -69,24 +70,26 @@ class CeleryTaskModel(Base):
         cascade="all, delete-orphan"
     )
 
-    def __init__(self, file_name: str, file_unique_name: str, file_path: str, 
-                 total_sub_tasks: int, main_task_id: str) -> None:
-        self.file_name = file_name
-        self.file_path = file_path
+    def __init__(self,file_type: str, file_unique_name: str, file_path: str,total_sub_tasks: int,main_task_id: str) -> None:
+        self.file_type = file_type
         self.file_unique_name = file_unique_name
-        self.main_task_id = main_task_id
-        self.remaining_sub_tasks = total_sub_tasks
-        self.progress = 0
+        self.file_path = file_path
         self.total_sub_tasks = total_sub_tasks
-        self.status = "RUNNING"
+        self.main_task_id = main_task_id
+        self.status="RUNNING"
+        self.remaining_sub_tasks=total_sub_tasks
+        self.progress=0
+        self.created_at=get_ist_time()
+        self.updated_at=get_ist_time()
+        
+
 
     
     def set_status(self, new_status: str) -> None:
         self.status = new_status
 
     def __repr__(self) -> str:
-        return (f"Task(task_id={self.main_task_id}, "
-                f"file_name={self.file_name}, "
+        return (f"Task(task_id={self.main_task_id}",
                 f"status={self.status})")
 
 class CelerySubTaskModel(Base):
