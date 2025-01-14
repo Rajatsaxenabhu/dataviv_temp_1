@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 celery = Celery(__name__)
 celery.conf.broker_url = "redis://redis:6379/0"
 celery.conf.result_backend = "redis://redis:6379/0"
-celery.autodiscover_tasks(['app.tasks.file_task', 'app.tasks.image_task','app.tasks.cap_task'])
+celery.autodiscover_tasks(['app.tasks.image_task','app.tasks.audio_task'])
 celery.conf.timezone = "UTC"
 celery.conf.enable_utc = True
 @task_postrun.connect

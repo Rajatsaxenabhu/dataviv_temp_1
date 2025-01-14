@@ -28,6 +28,9 @@ def capture_image_task(self,start_date:datetime, end_date:datetime, interval:dat
     # print("interval",interval)
     # print("server_link",server_link)
     #session is open
+    
+
+
     try:
         with PostgresDb().session() as session:
              #main task id

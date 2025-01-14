@@ -62,7 +62,6 @@ class CeleryTaskModel(Base):
         onupdate=get_ist_time
     )
     
-
     # relationship
     sub_tasks: Mapped[List["CelerySubTaskModel"]] = relationship(
         "CelerySubTaskModel", 
@@ -82,8 +81,6 @@ class CeleryTaskModel(Base):
         self.created_at=get_ist_time()
         self.updated_at=get_ist_time()
         
-
-
     
     def set_status(self, new_status: str) -> None:
         self.status = new_status

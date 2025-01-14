@@ -1,9 +1,8 @@
 from fastapi import APIRouter, File,Depends
-
-
 from datetime import datetime,timezone
 from datetime import time
 from app.database.postgres.deps import get_db
+from app.tasks.audio_task import capture_audio_task
 from app.tasks.image_task import capture_image_task
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -32,6 +31,13 @@ class image_time(BaseModel):
     interval:time
     server_link:str
 
+class audio_time(BaseModel):
+    start_time:datetime
+    end_time:datetime
+    capture_interval:time
+    skip_interval:time
+    
+
 @router.post('/image/')
 async def image(payload: image_time):
     server_link='rtp://@224.0.0.1:5004' 
@@ -43,6 +49,20 @@ async def image(payload: image_time):
         payload.end_date,
         payload.interval,
         server_link])
-    print(ans.id)
+    return JSONResponse(content={"task_id": ans.id})
 
-    return True
+@router.post('/audio/')
+async def audio(payload: audio_time):
+    server_link='rtp://@224.0.0.1:5004'
+    # for testing we use the local video
+    server_link='app/videos/rajat.mp4'
+    ans=capture_audio_task.apply_async(
+        args=[
+        payload.start_time,
+        payload.end_time,
+        payload.capture_interval,
+        payload.skip_interval,
+        server_link,])        
+    return JSONResponse(
+        content={"task_id": ans.id} 
+    ) 
