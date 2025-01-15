@@ -22,7 +22,7 @@ if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
 @celery_app.task(name='image_main_task', bind=True)
-def capture_image_task(self,start_date:datetime, end_date:datetime, interval:datetime, server_link:str):
+def capture_image_task(self,start_date:datetime, end_date:datetime, interval:datetime, server_link:str,front_end_id:int):
     # print("start_date",start_date)
     # print("end_date",end_date)
     # print("interval",interval)
@@ -46,15 +46,13 @@ def capture_image_task(self,start_date:datetime, end_date:datetime, interval:dat
             file_location = f"app/static/images/{file_unique_name}"
             if not os.path.exists(file_location):
                 os.makedirs(file_location)
-
-            new_task = CeleryTaskModel(
-                file_type='image',
+            update_task=session.query(CeleryTaskModel).filter(CeleryTaskModel.id==front_end_id).first()
+            update_task.update_start_value(
                 file_unique_name=file_unique_name,
                 file_path=file_location,
                 main_task_id=main_task_id,
                 total_sub_tasks=total_sub_tasks,
-                )
-            session.add(new_task)
+            )
             session.commit()
             print("Main task started at",now)
             for i in range(total_sub_tasks):

@@ -30,35 +30,35 @@ class CeleryTaskModel(Base):
         String(25), nullable=False, unique=False)
 
     file_unique_name: Mapped[str] = mapped_column(
-        String(255), nullable=False, unique=True)
+        String(255), nullable=True, unique=True)
         
     file_path: Mapped[str] = mapped_column(
-        String(255), nullable=False, unique=False)
+        String(255), nullable=True, unique=False)
     
     progress: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=1)
+        Integer, nullable=True, default=1)
 
     total_sub_tasks: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0)
+        Integer, nullable=True, default=0)
 
     remaining_sub_tasks: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0)
+        Integer, nullable=True, default=0)
 
     status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="READY")
+        String(20), nullable=True, default="READY")
 
     main_task_id: Mapped[str] = mapped_column(
-        String(255), nullable=False, unique=True)
+        String(255), nullable=True, unique=True)
     
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), 
-        nullable=False, 
+        nullable=True, 
         default=get_ist_time
     )
     
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), 
-        nullable=False,
+        nullable=True,
         default=get_ist_time,
         onupdate=get_ist_time
     )
@@ -70,19 +70,19 @@ class CeleryTaskModel(Base):
         cascade="all, delete-orphan"
     )
 
-    def __init__(self,file_type: str, file_unique_name: str, file_path: str,total_sub_tasks: int,main_task_id: str) -> None:
+    def __init__(self,file_type: str) -> None:
         self.file_type = file_type
-        self.file_unique_name = file_unique_name
-        self.file_path = file_path
-        self.total_sub_tasks = total_sub_tasks
-        self.main_task_id = main_task_id
+        self.created_at=get_ist_time()  
+
+    def update_start_value(self,file_unique_name,file_path,main_task_id,total_sub_tasks)->None:
+        self.file_unique_name=file_unique_name,
+        self.file_path=file_path,
+        self.main_task_id=main_task_id,
+        self.total_sub_tasks=total_sub_tasks,
         self.status="RUNNING"
         self.remaining_sub_tasks=total_sub_tasks
-        self.progress=0
-        self.created_at=get_ist_time()
-        self.updated_at=get_ist_time()
-        
-    
+
+
     def set_status(self, new_status: str) -> None:
         self.status = new_status
 
