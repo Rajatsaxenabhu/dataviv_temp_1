@@ -66,3 +66,6 @@ async def audio(payload: audio_time):
     return JSONResponse(
         content={"task_id": ans.id} 
     ) 
+@router.get('/status/{task_id}')
+async def get_status(task_id: str):
+    

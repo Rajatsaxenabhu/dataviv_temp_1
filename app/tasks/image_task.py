@@ -80,10 +80,9 @@ def capture_image_subtask(self,server_link:str,savelocation:str)->bool:
     self.update_state(state="PROGRESS")
     current_time = datetime.now(timezone.utc)
     try:
-        uniq_name=datetime.now().strftime("%Y%m%d%H%M%S")
         filenameprefix="frame"
         maxframes=1
-        image_capture(server_link,savelocation,filenameprefix,maxframes)
+        image_capture(server_link,savelocation,filenameprefix)
         #result
         pass
     except Exception as e:

@@ -45,18 +45,15 @@ def image_capture(rtsp_url: str, save_location: str, filename_prefix: str):
         return False
     return True
 
-def audio_capture(rtsp_url, save_location: str, filename_prefix:str, duration):
-    
+def audio_capture(rtsp_url, save_location: str, filename_prefix:str, duration:int):
     os.makedirs(save_location, exist_ok=True)
-
-    saved_clips = []
     audio_extracted = 0
 
     while audio_extracted < 1:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         filename = f"{filename_prefix}_{timestamp}.aac"
         filepath = os.path.join(save_location, filename)
-
+        print('duration',duration)
         ffmpeg_cmd = [
             'ffmpeg',
             '-y',  # Overwrite output files without asking
@@ -78,12 +75,9 @@ def audio_capture(rtsp_url, save_location: str, filename_prefix:str, duration):
         # Check for errors in the FFmpeg process
         if process.returncode != 0:
             raise Exception(f"FFmpeg error: {process.stderr}")
-
-        # Add the saved file to the list and increment counter
-        saved_clips.append(filepath)
         audio_extracted += 1
 
-    return saved_clips
+    return True
 
 
 # def video_capture():

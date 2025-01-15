@@ -5,7 +5,7 @@ from celery.signals import task_retry, task_failure, task_postrun, task_internal
 from typing import Optional, Tuple
 import logging
 from fastapi import HTTPException
-from .ffmpeg import image_capture
+from .ffmpeg import audio_capture
 
 from app.database.postgres.deps import PostgresDb
 from app.database.postgres.models.tasks import CelerySubTaskModel, CeleryTaskModel
@@ -42,8 +42,7 @@ def capture_audio_task(self,start_date:datetime, end_date:datetime,capture_inter
             print("end",(end_date-start_date).total_seconds())
             print("total_interval",total_interval.total_seconds())
             total_sub_tasks= int((end_date-start_date).total_seconds()/total_interval.total_seconds())
-            # print('intervals',total_sub_tasks)
-            # print('total_sub_task',total_sub_tasks)
+            print('total_sub_task',total_sub_tasks)
             now=datetime.now(timezone.utc)
             time_name=datetime.now().strftime("%Y%m%d%H%M%S")
             file_unique_name=f"Audio_{time_name}"
@@ -63,7 +62,7 @@ def capture_audio_task(self,start_date:datetime, end_date:datetime,capture_inter
             print("Main task started at",now)
             for i in range(total_sub_tasks):
                 eta_time = start_date + total_interval*i
-                subtask = capture_audio_subtask.apply_async((server_link,file_location,), eta=eta_time)
+                subtask = capture_audio_subtask.apply_async((server_link,file_location,capture_interval,), eta=eta_time)
                 sub_task_update=CelerySubTaskModel(
                     sub_task_id=subtask.id,
                     sub_task_main_id = main_task_id,
@@ -78,16 +77,15 @@ def capture_audio_task(self,start_date:datetime, end_date:datetime,capture_inter
         session.close()
 
 @celery_app.task(name='audio_sub_task', bind=True)
-def capture_audio_subtask(self,server_link:str,savelocation:str)->bool:
+def capture_audio_subtask(self,server_link:str,savelocation:str,duration:time)->bool:
 #     #working on sub task
     self.update_state(state="PROGRESS")
     current_time = datetime.now(timezone.utc)
     try:
-        uniq_name=datetime.now().strftime("%Y%m%d%H%M%S")
         filenameprefix="audio"
-        maxframes=1
-        # image_capture(server_link,savelocation,filenameprefix,maxframes)
-        print('inside subtask audio')
+        total_duration=duration.hour*3600+duration.minute*60+duration.second
+        total_duration=int(total_duration)
+        audio_capture(server_link,savelocation,filenameprefix,total_duration)
         #result
         pass
     except Exception as e:
