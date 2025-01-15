@@ -1,11 +1,15 @@
-from fastapi import APIRouter, File,Depends
+from fastapi import APIRouter,HTTPException
 from datetime import datetime,timezone
 from datetime import time
-from app.database.postgres.deps import get_db
+from app.database.postgres.deps import PostgresDbContext
 from app.tasks.audio_task import capture_audio_task
 from app.tasks.image_task import capture_image_task
+from app.database.postgres.models.tasks import CeleryTaskModel
 from fastapi.responses import JSONResponse
+from sqlalchemy import select
 from pydantic import BaseModel
+from sqlalchemy.exc import SQLAlchemyError
+
 router = APIRouter()
 stop_processing = False
 class image_time(BaseModel):
@@ -68,4 +72,20 @@ async def audio(payload: audio_time):
     ) 
 @router.get('/status/{task_id}')
 async def get_status(task_id: str):
+    try:
+        with PostgresDbContext() as session:
+            print("inside the session")
+            task = session.execute(
+                select(CeleryTaskModel)
+                .where(CeleryTaskModel.id == task_id)
+            ).scalar_one_or_none()
+            if task:
+                return JSONResponse(content={"status": task.status, "progress": task.progress}, status_code=200)  
+            else:
+                return JSONResponse(content={"message": "Task not found"}, status_code=404)
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
     
+

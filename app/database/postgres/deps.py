@@ -18,6 +18,9 @@ class PostgresDb():
     def session(self) -> Session:
         return self._session
 
+    def get_new_session(self) -> Session:
+        return SessionLocal()
+
 
 def get_db():
     db = SessionLocal()
@@ -28,3 +31,15 @@ def get_db():
 
 
 pg_session_dependency = Annotated[Session, Depends(PostgresDb().session)]
+
+class PostgresDbContext:
+    def __init__(self):
+        self.db = PostgresDb().get_new_session()
+    
+    def __enter__(self):
+        return self.db
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            self.db.rollback()
+        self.db.close()

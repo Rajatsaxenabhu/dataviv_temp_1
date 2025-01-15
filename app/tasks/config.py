@@ -1,6 +1,6 @@
 from celery import Celery
 from celery.signals import task_retry, task_failure, task_postrun, task_internal_error
-from app.database.postgres.deps import PostgresDb
+from app.database.postgres.deps import PostgresDbContext
 from sqlalchemy import select
 from app.database.postgres.models.tasks import CelerySubTaskModel, CeleryTaskModel
 import logging
@@ -20,7 +20,7 @@ def handle_task_postrun(task_id: str, task: any, state: str, **kwargs):
     Updates task statuses and progress after task completion.
     """
     try:
-        with PostgresDb().session() as session:
+        with PostgresDbContext() as session:
             # Get subtask record
             subtask = session.execute(
                 select(CelerySubTaskModel)

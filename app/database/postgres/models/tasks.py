@@ -17,6 +17,7 @@ def get_ist_time():
 class CeleryTaskModel(Base):
     __tablename__ = "celery_tasks"
     
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     uid: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), 
         index=True, 
@@ -99,7 +100,7 @@ class CelerySubTaskModel(Base):
         nullable=False,
         default=uuid.uuid4
     )
-
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)  
     sub_task_main_id: Mapped[str] = mapped_column(
         String(255), 
         ForeignKey("celery_tasks.main_task_id", ondelete="CASCADE"), 

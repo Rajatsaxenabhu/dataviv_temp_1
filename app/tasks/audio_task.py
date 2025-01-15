@@ -2,7 +2,6 @@ from app.tasks.config import celery as celery_app
 import os
 from datetime import time, datetime, timedelta, timezone
 from celery.signals import task_retry, task_failure, task_postrun, task_internal_error
-from typing import Optional, Tuple
 import logging
 from fastapi import HTTPException
 from .ffmpeg import audio_capture
